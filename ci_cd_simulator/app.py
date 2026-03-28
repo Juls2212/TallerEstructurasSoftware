@@ -14,6 +14,77 @@ def get_simulator() -> CICDSimulator:
 
 simulator = get_simulator()
 
+
+def build_agents_array_rows() -> list[dict]:
+    rows = []
+    for index, agent in enumerate(simulator.agents):
+        rows.append(
+            {
+                "Index": f"[{index}]",
+                "Agent": agent.name,
+                "Status": agent.status,
+                "Current Job": agent.current_job or "-",
+            }
+        )
+    return rows
+
+
+def build_queue_rows() -> list[dict]:
+    rows = []
+    for index, job in enumerate(simulator.waiting_jobs):
+        rows.append(
+            {
+                "Position": index + 1,
+                "Queue Role": "Front" if index == 0 else "Waiting",
+                "Job ID": job.id,
+                "Job Name": job.name,
+                "Branch": job.branch,
+                "Status": job.status,
+            }
+        )
+    return rows
+
+
+def build_stack_rows() -> list[dict]:
+    rows = []
+    versions = simulator.get_versions_stack()
+    for index, version in enumerate(versions, start=1):
+        rows.append(
+            {
+                "Level": index,
+                "Position": "Top" if index == 1 else "Below Top",
+                "Version": version,
+            }
+        )
+    return rows
+
+
+def build_pipeline_rows() -> list[dict]:
+    rows = []
+    pipeline_stages = simulator.get_pipeline_stages()
+    for index, stage_name in enumerate(pipeline_stages, start=1):
+        next_stage = pipeline_stages[index] if index < len(pipeline_stages) else "None"
+        rows.append(
+            {
+                "Node": index,
+                "Current Stage": stage_name,
+                "Next Stage": next_stage,
+            }
+        )
+    return rows
+
+
+def build_logs_rows(filter_text: str) -> list[dict]:
+    rows = []
+    for index, log_entry in enumerate(simulator.get_logs(filter_text), start=1):
+        rows.append(
+            {
+                "Order": index,
+                "Event": log_entry,
+            }
+        )
+    return rows
+
 st.title("CI/CD Simulator Dashboard")
 st.caption("A simple classroom demo of array, queue, stack, list, and singly linked list.")
 
@@ -53,52 +124,38 @@ st.divider()
 top_left, top_right = st.columns(2)
 
 with top_left:
-    st.subheader("Execution Agents")
-    st.caption("Array: fixed execution agents.")
-    st.table(simulator.get_agents_status())
+    st.subheader("Execution Agents Array")
+    st.caption("Fixed array with indexed positions. This structure does not grow or shrink during the demo.")
+    st.table(build_agents_array_rows())
+    st.text("[0] Ubuntu   [1] Windows   [2] macOS   [3] Alpine")
 
 with top_right:
-    st.subheader("Waiting Queue")
-    st.caption("Queue: jobs waiting for the first free agent.")
-    queue_status = simulator.get_queue_status()
-    if queue_status:
-        st.table(queue_status)
+    st.subheader("Job Queue (FIFO)")
+    st.caption("First In, First Out")
+    queue_rows = build_queue_rows()
+    if queue_rows:
+        st.table(queue_rows)
+        first_job = simulator.waiting_jobs[0]
+        st.info(f"Front of queue: Job #{first_job.id} - {first_job.name}")
     else:
         st.warning("The waiting queue is empty.")
 
 middle_left, middle_right = st.columns(2)
 
 with middle_left:
-    st.subheader("Pipeline Stages")
-    st.caption("Singly linked list: each stage points to the next stage.")
-    stage_rows = []
-    pipeline_stages = simulator.get_pipeline_stages()
-    for index, stage_name in enumerate(pipeline_stages, start=1):
-        next_stage = pipeline_stages[index] if index < len(pipeline_stages) else "None"
-        stage_rows.append(
-            {
-                "Node": index,
-                "Stage": stage_name,
-                "Next": next_stage,
-            }
-        )
-    st.table(stage_rows)
+    st.subheader("Pipeline Stages Singly Linked List")
+    st.caption("Each stage points only to the next stage.")
+    st.table(build_pipeline_rows())
+    linked_list_text = " -> ".join(f"[{stage}]" for stage in simulator.get_pipeline_stages())
+    st.code(linked_list_text, language="text")
 
 with middle_right:
-    st.subheader("Deployed Versions Stack")
-    st.caption("Stack: top version appears first.")
-    versions_stack = simulator.get_versions_stack()
-    if versions_stack:
-        version_rows = []
-        for index, version in enumerate(versions_stack, start=1):
-            version_rows.append(
-                {
-                    "Position": index,
-                    "Version": version,
-                    "State": "Top" if index == 1 else "Stored",
-                }
-            )
-        st.table(version_rows)
+    st.subheader("Deployment Stack (LIFO)")
+    st.caption("Last In, First Out")
+    stack_rows = build_stack_rows()
+    if stack_rows:
+        st.table(stack_rows)
+        st.info(f"Top version: {stack_rows[0]['Version']}")
     else:
         st.warning("No versions have been deployed yet.")
 
@@ -108,7 +165,7 @@ action_left, action_right = st.columns(2)
 
 with action_left:
     st.subheader("Job Processing")
-    st.caption("The first queued job is assigned to the first free agent.")
+    st.caption("Processing removes the front job from the queue and assigns it to the first free agent.")
     if st.button("Process Next Job", use_container_width=True):
         process_message = simulator.process_next_job()
         if "completed" in process_message.lower():
@@ -147,14 +204,18 @@ if rollback_message is not None:
 
 st.divider()
 
-st.subheader("Logs Console")
-st.caption("List: logs stored in a Python list and displayed like console output.")
+st.subheader("Live Logs List")
+st.caption("New events are appended to the end of the list as actions happen.")
 logs_filter = st.text_input("Filter logs", value="")
-filtered_logs = simulator.get_logs(logs_filter)
+log_rows = build_logs_rows(logs_filter)
 
 with st.container(border=True):
-    if filtered_logs:
-        console_output = "\n".join(filtered_logs)
+    if log_rows:
+        console_output = "\n".join(
+            f"{row['Order']:02d}. {row['Event']}" for row in log_rows
+        )
         st.code(console_output, language="text")
+        with st.expander("Show log list order"):
+            st.table(log_rows)
     else:
         st.warning("No logs match the current filter.")
