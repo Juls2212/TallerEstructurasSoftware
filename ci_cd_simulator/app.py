@@ -85,6 +85,17 @@ def build_logs_rows(filter_text: str) -> list[dict]:
         )
     return rows
 
+
+def add_demo_jobs() -> None:
+    demo_jobs = [
+        ("Frontend Build", "main"),
+        ("API Tests", "develop"),
+        ("Docs Check", "feature/docs"),
+    ]
+    for job_name, branch_name in demo_jobs:
+        new_job = simulator.create_job(job_name, branch_name)
+        simulator.enqueue_job(new_job)
+
 st.title("CI/CD Simulator Dashboard")
 st.caption("A simple classroom demo of array, queue, stack, list, and singly linked list.")
 
@@ -98,6 +109,7 @@ st.divider()
 
 with st.container():
     st.subheader("Create Job")
+    st.caption("Queue demo: create one job or add three jobs quickly to show FIFO behavior.")
     form_columns = st.columns([2, 2, 1])
 
     with form_columns[0]:
@@ -119,19 +131,24 @@ with st.container():
         else:
             st.error("Job name and branch name are required.")
 
+    if st.button("Add 3 Demo Jobs Quickly", use_container_width=False):
+        add_demo_jobs()
+        st.success("Three demo jobs were added to the queue in insertion order.")
+
 st.divider()
 
 top_left, top_right = st.columns(2)
 
 with top_left:
     st.subheader("Execution Agents Array")
-    st.caption("Fixed array with indexed positions. This structure does not grow or shrink during the demo.")
+    st.caption("Array = fixed indexed agents")
     st.table(build_agents_array_rows())
     st.text("[0] Ubuntu   [1] Windows   [2] macOS   [3] Alpine")
+    st.info("The array always keeps exactly 4 agents. Only status and current job change.")
 
 with top_right:
     st.subheader("Job Queue (FIFO)")
-    st.caption("First In, First Out")
+    st.caption("Queue = FIFO job processing")
     queue_rows = build_queue_rows()
     if queue_rows:
         st.table(queue_rows)
@@ -144,14 +161,15 @@ middle_left, middle_right = st.columns(2)
 
 with middle_left:
     st.subheader("Pipeline Stages Singly Linked List")
-    st.caption("Each stage points only to the next stage.")
+    st.caption("Singly Linked List = one-way stage sequence")
     st.table(build_pipeline_rows())
     linked_list_text = " -> ".join(f"[{stage}]" for stage in simulator.get_pipeline_stages())
     st.code(linked_list_text, language="text")
+    st.info("Traversal moves from the first stage to the last stage in one direction only.")
 
 with middle_right:
     st.subheader("Deployment Stack (LIFO)")
-    st.caption("Last In, First Out")
+    st.caption("Stack = LIFO rollback system")
     stack_rows = build_stack_rows()
     if stack_rows:
         st.table(stack_rows)
@@ -175,6 +193,7 @@ with action_left:
 
 with action_right:
     st.subheader("Deploy Version")
+    st.caption("Deploy several versions such as v1.0.0, v1.0.1, and v1.0.2 to demonstrate LIFO behavior.")
     deploy_columns = st.columns([3, 1])
 
     with deploy_columns[0]:
@@ -192,6 +211,14 @@ with action_right:
         else:
             st.error("Version name is required.")
 
+    quick_versions = st.columns(3)
+    if quick_versions[0].button("Push v1.0.0", use_container_width=True):
+        st.success(simulator.deploy_version("v1.0.0"))
+    if quick_versions[1].button("Push v1.0.1", use_container_width=True):
+        st.success(simulator.deploy_version("v1.0.1"))
+    if quick_versions[2].button("Push v1.0.2", use_container_width=True):
+        st.success(simulator.deploy_version("v1.0.2"))
+
 rollback_message = None
 if st.button("Emergency Rollback", use_container_width=True):
     rollback_message = simulator.rollback()
@@ -205,7 +232,7 @@ if rollback_message is not None:
 st.divider()
 
 st.subheader("Live Logs List")
-st.caption("New events are appended to the end of the list as actions happen.")
+st.caption("List = dynamic log storage")
 logs_filter = st.text_input("Filter logs", value="")
 log_rows = build_logs_rows(logs_filter)
 
@@ -217,5 +244,6 @@ with st.container(border=True):
         st.code(console_output, language="text")
         with st.expander("Show log list order"):
             st.table(log_rows)
+        st.info("Every new system action appends a new event to the end of this list.")
     else:
         st.warning("No logs match the current filter.")

@@ -92,6 +92,9 @@ class CICDSimulator:
             branch=branch.strip(),
         )
         self.next_job_id += 1
+        self.add_log(
+            f"Job #{job.id} created with name {job.name} on branch {job.branch}."
+        )
         return job
 
     def enqueue_job(self, job: Job) -> str:
