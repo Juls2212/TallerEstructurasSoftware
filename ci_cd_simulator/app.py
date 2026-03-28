@@ -141,14 +141,14 @@ top_left, top_right = st.columns(2)
 
 with top_left:
     st.subheader("Execution Agents Array")
-    st.caption("Array = fixed indexed agents")
+    st.caption("Fixed indexed execution agents.")
     st.table(build_agents_array_rows())
     st.text("[0] Ubuntu   [1] Windows   [2] macOS   [3] Alpine")
     st.info("The array always keeps exactly 4 agents. Only status and current job change.")
 
 with top_right:
     st.subheader("Job Queue (FIFO)")
-    st.caption("Queue = FIFO job processing")
+    st.caption("Jobs wait in arrival order until an agent is free.")
     queue_rows = build_queue_rows()
     if queue_rows:
         st.table(queue_rows)
@@ -161,7 +161,7 @@ middle_left, middle_right = st.columns(2)
 
 with middle_left:
     st.subheader("Pipeline Stages Singly Linked List")
-    st.caption("Singly Linked List = one-way stage sequence")
+    st.caption("Each stage points only to the next stage.")
     st.table(build_pipeline_rows())
     linked_list_text = " -> ".join(f"[{stage}]" for stage in simulator.get_pipeline_stages())
     st.code(linked_list_text, language="text")
@@ -169,7 +169,7 @@ with middle_left:
 
 with middle_right:
     st.subheader("Deployment Stack (LIFO)")
-    st.caption("Stack = LIFO rollback system")
+    st.caption("Each deployed version is pushed on top for rollback.")
     stack_rows = build_stack_rows()
     if stack_rows:
         st.table(stack_rows)
@@ -232,7 +232,7 @@ if rollback_message is not None:
 st.divider()
 
 st.subheader("Live Logs List")
-st.caption("List = dynamic log storage")
+st.caption("System events are appended dynamically.")
 logs_filter = st.text_input("Filter logs", value="")
 log_rows = build_logs_rows(logs_filter)
 
